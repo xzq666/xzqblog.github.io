@@ -1,3 +1,5 @@
+常用正则表达
+
 一、校验数字的表达式
  1 数字：^[0-9]*$ 
  2 n位的数字：^\d{n}$ 
@@ -69,3 +71,221 @@
 32 中国邮政编码：[1-9]\d{5}(?!\d)    (中国邮政编码为6位数字)
 33 IP地址：\d+\.\d+\.\d+\.\d+    (提取IP地址时有用)
 34 IP地址：((?:(?:25[0-5]|2[0-4]\\d|[01]?\\d?\\d)\\.){3}(?:25[0-5]|2[0-4]\\d|[01]?\\d?\\d))
+
+
+
+
+常见问题
+
+1.iOS11数字精度问题
+/*!
+ @brief 修正浮点型精度丢失
+ @param str 传入接口取到的数据
+ @return 修正精度后的数据
+ */
++(NSString *)reviseString:(NSString *)str {
+    //直接传入精度丢失有问题的Double类型
+    double conversionValue = [str doubleValue];
+    NSString *doubleString = [NSString stringWithFormat:@"%lf", conversionValue];
+    NSDecimalNumber *decNumber = [NSDecimalNumber decimalNumberWithString:doubleString];
+    return [decNumber stringValue];
+}
+
+2.iOS 11 tableview适配
+// tableView 偏移20/64适配
+if (@available(iOS 11.0, *)) {
+    self.tableView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;//UIScrollView也适用
+} else {
+    self.automaticallyAdjustsScrollViewInsets = NO;
+}
+
+3.iOS 11地图不提示是否允许定位
+Privacy - Location Always Usage Description   //删掉这个iOS11可提示
+Privacy - Location When In Use Usage Description
+
+4.高德地图点击手势添加标记 进行POI检索
+点击屏幕上地图  获取手势点击点经纬度并进行POI检索的方法
+1）.添加手势
+    UITapGestureRecognizer *mTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapPress:)];
+    mTap.delegate = self;
+    [self.mapView addGestureRecognizer:mTap];
+2）.手势对应的方法
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
+    return YES;
+}
+- (void)tapPress:(UIGestureRecognizer*)gestureRecognizer { 
+    CGPoint touchPoint = [gestureRecognizer locationInView:self.mapView];//这里touchPoint是点击的某点在地图控件中的位置
+    CLLocationCoordinate2D touchMapCoordinate =
+    [self.mapView convertPoint:touchPoint toCoordinateFromView:self.mapView];//这里touchMapCoordinate就是该点的经纬度了
+    AMapPOIAroundSearchRequest *request = [[AMapPOIAroundSearchRequest alloc] init];
+    request.location            = [AMapGeoPoint locationWithLatitude:touchMapCoordinate.latitude longitude:touchMapCoordinate.longitude];
+    /* 按照距离排序. */
+    request.sortrule            = 0;
+    request.requireExtension    = YES;
+    [self.search AMapPOIAroundSearch:request];
+
+5.多层wkwebview返回
+    if ([self.localWebView canGoBack]) {
+        [self.localWebView goBack];
+    } else {
+        [self.navigationController popToRootViewControllerAnimated:YES];
+    }
+
+6.tableview数组越界
+使用懒加载的数组只创建一次刷新数据的时候要记得移除所有的数组元素
+[self.dataArray removeAllObjects];
+判断数组为空时候的越界问题当首次数据没有请求完毕的时候[tableVIew reloadData];就会导致crash这个时候需要做一次判断：
+if(self.dataArray.count != 0) {
+    MOdel * model = self.dataArray[indexPath.row];
+}
+有时候会出现上拉加载更多后点击下拉出现crash 这个时候提示数组越界但是并不是真的越界 因为这个时候的indexpath.row > 数组的元素个数的。所以需要以下处理
+if(!(indexPath.row > rewardArray.count)) {
+  Model* model = slef.dataArray[indexpath.row];
+}
+
+7.textfiled占位语的设置
+  NSMutableDictionary *attrs = [NSMutableDictionary dictionary];
+  attrs[NSForegroundColorAttributeName] = [Toolkit getColor:@"ff5600"];
+  NSMutableAttributedString *placeHolder = [[NSMutableAttributedString alloc]initWithString:@"   请输入支付密码" attributes:attrs];
+  _zhifuTextField.attributedPlaceholder = placeHolder;
+
+8. 禁止屏幕滑动返回
+-(void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+    // 禁用返回手势
+    if ([self.navigationController respondsToSelector:@selector(interactivePopGestureRecognizer)]) {
+        self.navigationController.interactivePopGestureRecognizer.enabled = NO;
+    }
+}
+- (void)viewWillDisappear:(BOOL)animated {
+    [super viewWillDisappear:animated];
+    if ([self.navigationController respondsToSelector:@selector(interactivePopGestureRecognizer)]) {
+        self.navigationController.interactivePopGestureRecognizer.enabled = YES;
+    }
+}
+
+9.label中划线设置
+   //中划线
+    NSMutableAttributedString *attribtStr_origin = [[NSMutableAttributedString alloc]initWithString:originalMoney attributes:attribtDic];
+    [attribtStr_origin setAttributes:@{NSStrikethroughStyleAttributeName: [NSNumber numberWithInteger:NSUnderlineStyleSingle], NSBaselineOffsetAttributeName : @(NSUnderlineStyleSingle),NSForegroundColorAttributeName:[Toolkit getColor:hex_aaaaaa]} range:NSMakeRange(0,attribtStr_origin.length)];
+    [attribtStr_origin addAttribute:NSFontAttributeName value:[UIFont fontWithName:@"GillSans" size:12.0] range:NSMakeRange(0,attribtStr_origin.length)];
+    [attribtStr appendAttributedString:attribtStr_origin];
+
+10.Mansonry不用弱引用 为什么不会循环引用
+-(NSArray )mas_makeConstraints:(void(^)(MASConstraintMaker ))block {
+    self.translatesAutoresizingMaskIntoConstraints = NO;
+    MASConstraintMaker *constraintMaker = [[MASConstraintMaker alloc] initWithView:self];
+    block(constraintMaker);
+    return [constraintMaker install];
+}
+这个就和网络请求里面使用self道理是一样的。因为UIView未强持有block，所以这个block只是个栈block，而且构不成循环引用的条件。栈block有个特性就是它执行完毕之后就出栈，出栈了就会被释放掉。看mas_makexxx的方法实现会发现这个block很快就被调用了，完事儿就出栈销毁，构不成循环引用，所以可以直接放心的使用self。
+masonry里面没有额外引用起来，block执行完之后就随着方法执行完之后就销毁了，不存在一直被引用释放不了的问题，所以无需weak。weak也无所谓。
+
+11.跨多级页面跳转
+    [[_app_ getTabBar] selectTableBarIndex:2];
+    [self.navigationController popToRootViewControllerAnimated:NO];
+    UINavigationController *selectedNavi = [_app_ getTabBar].selectedViewController;
+    if (selectedNavi.viewControllers.count >0) {
+        if ([[selectedNavi.viewControllers firstObject] class] == [ProfileViewController class]) {
+             PropertyDetailViewController *propertyDetailVC =[[PropertyDetailViewController alloc]initWithPropertyType:6];
+             ProfileViewController *ProfileViewController = [selectedNavi.viewControllers firstObject];
+             [ProfileViewController.navigationController pushViewController:propertyDetailVC animated:NO];
+        }
+     }
+
+12.富文本字体的修改
+    NSMutableAttributedString *str = [[NSMutableAttributedString alloc] initWithString:@"我已阅读并同意《xxxx商家合作服务协议》"];
+    [str addAttributes:@{NSForegroundColorAttributeName:[Toolkit getColor:@"507daf"]} range:NSMakeRange(7, 13)];
+    _agreenedLabel.attributedText = str;
+
+13.键盘遮挡问题 手势冲突
+//解决手势冲突 网格点击
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldReceiveTouch:(UITouch *)touch {
+    if (touch.view != self.customCollectionView) {     
+        [self.view endEditing:YES];
+        return NO;
+    }
+    return YES;
+}
+
+14.键盘输入框限制输入等处理
+1).先加入事件
+[_phoneTextField addTarget:self action:@selector(textFieldDidChange:) forControlEvents:UIControlEventEditingChanged];
+2).处理方法
+- (void)textFieldDidChange:(UITextField *)textField {
+    UITextRange *selectedRange = textField.markedTextRange;
+    UITextPosition *position = [textField positionFromPosition:selectedRange.start offset:0];
+    if (!position) {
+        // 没有高亮选择的字
+        // 1. 过滤非汉字、字母、数字字符
+        self.phoneTextField.text = [self filterCharactor:textField.text withRegex:@"[^0-9]"];
+        // 2. 截取
+        if (self.phoneTextField.text.length >= 12) {
+            self.phoneTextField.text = [self.phoneTextField.text substringToIndex:11];
+        }
+    } else {
+        // 有高亮选择的字 不做任何操作
+    }
+}
+// 过滤字符串中的非汉字、字母、数字
+- (NSString *)filterCharactor:(NSString *)string withRegex:(NSString *)regexStr{
+    NSString *filterText = string;
+    NSError *error = NULL;
+    NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:regexStr options:NSRegularExpressionCaseInsensitive error:&error];
+    NSString *result = [regex stringByReplacingMatchesInString:filterText options:NSMatchingReportCompletion range:NSMakeRange(0, filterText.length) withTemplate:@""];
+    return result;
+}
+
+15.oc中的泛型
+举例：
+- (void)test {
+    NSMutableArray<NSString *> *strArray = [NSMutableArray array];
+    [strArray addObject:@"aString"];
+}
+可以在声明NSMutableArray时添加一个弱泛型约束，之所以是弱泛型，是因为编译器会帮你检查数据类型是否正确，如果不正确会有一个警告，但是不会强制报错，代码还是可以编译过的。
+//传入的不是规定的类型 会报警告
+- (void)test {
+    NSMutableArray<NSString *> *strArray = [NSMutableArray array];
+    [strArray addObject:[NSNumber numberWithFloat:15.0]];
+}
+
+16.修改UIAlertView设置文字左对齐
+因为iphoneSDK默认是居中对齐的，而且没有提供方法设置文本对齐接口，在Delegate中:
+- (void)willPresentAlertView:(UIAlertView *)alertView;
+获取UIAlertView上面的Message控件，它其实也是一个UILable控件，然后设置其textAlignment的属性即可。
+代码如下：
+- (void)willPresentAlertView:(UIAlertView *)alertView {
+    UIView * view = [alertView.subviews objectAtIndex:2];
+    if([view isKindOfClass:[UILabel class]]){
+        UILabel* label = (UILabel*) view;
+        label.textAlignment = UITextAlignmentLeft;
+    }
+}
+这里要注意的是，Message的UILable在alertView.subviews里面是第3个元素，第一个元素是一个UIImageView(背景),UILable(标题),UILable(Message),UIButton(Cancel)...(如果还有的话以此类推)。
+
+17.iPhone6屏幕获取不准的原因
+手机设置在放大模式 会导致代码获取屏幕尺寸不准 6 6s 7 宽度和 5s 输出宽度一直 设置改为标准模式 消失
+    CGRect bounds = [[UIScreen mainScreen] bounds];
+    NSString *screenMode = [[UIScreen mainScreen].coordinateSpace description]; CGFloat scale = [[UIScreen mainScreen] scale];
+    CGFloat nativeScale = [[UIScreen mainScreen] nativeScale];
+    NSLog(@" bounds: %@ screen mode: %@ scale: %f native scale: %f", NSStringFromCGRect(bounds), screenMode, scale, nativeScale);
+
+18.本地字典写成需要的JSON 本地文件
+    // 判断当前对象是否能够转换成JSON数据.
+    BOOL isYes = [NSJSONSerialization isValidJSONObject:dict];
+    if (isYes) {
+        NSLog(@"可以转换");
+        NSData *jsonData = [NSJSONSerialization dataWithJSONObject:dict options:0 error:NULL];
+        // 将JSON数据写成文件
+        // 文件添加后缀名: 告诉别人当前文件的类型.
+        // 注意: AFN是通过文件类型来确定数据类型的!如果不添加类型,有可能识别不了! 自己最好添加文件类型.
+        [jsonData writeToFile:@"/Users/ygkj/Desktop/shopCartTestData.json" atomically:YES];
+        NSLog(@"%@", [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding]);
+    } else {
+        NSLog(@"JSON数据生成失败，请检查数据格式");
+    }
+
+19.滚动试图不滚动的问题
+-(void)viewDidLayoutSubviews {
+    _BaseScore.contentSize = CGSizeMake(SCREEN_WIDTH, xxxx);
+}
