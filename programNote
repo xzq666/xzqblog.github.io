@@ -289,3 +289,23 @@ masonry里面没有额外引用起来，block执行完之后就随着方法执�
 -(void)viewDidLayoutSubviews {
     _BaseScore.contentSize = CGSizeMake(SCREEN_WIDTH, xxxx);
 }
+
+20.字体的适配
+UIFont新建分类重写Load方法
+#define SCALE(s)  ((s) / 375.0 * SCREEN_WIDTH)
+
++ (void)load {
+    // 自己的方法
+    Method newMethod =class_getClassMethod([self class], @selector(adjustFont:));
+    // 系统的方法
+    Method method = class_getClassMethod([self class], @selector(systemFontOfSize:));
+    // 黑魔法交换方法
+    method_exchangeImplementations(newMethod, method);
+}
+
++ (UIFont *)adjustFont:(CGFloat)fontSize {
+    UIFont *newFont=nil;
+    newFont = [UIFont adjustFont:SCALE(fontSize)];
+    return newFont;
+}
+用自己的方法和系统的方法交换其实变成了adjustFont:实现的是systemFontOfSize:所指向的方法。
